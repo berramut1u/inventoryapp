@@ -6,6 +6,19 @@ using System.Text;
 
 
 var builder = WebApplication.CreateBuilder(args);
+
+// CORS tanýmý
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:5173") // React app origin
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]);
 
@@ -38,7 +51,15 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 var app = builder.Build();
 
 // Middleware
-app.UseAuthentication(); 
+app.UseHttpsRedirection();     // (Opsiyonel ama genelde olur)
+
+app.UseRouting();              // CORS'tan önce routing lazým
+app.UseCors("AllowFrontend");
+// CORS burada olmalý
+
+app.UseAuthentication();       // Auth bundan sonra
 app.UseAuthorization();
+
 app.MapControllers();
+
 app.Run();

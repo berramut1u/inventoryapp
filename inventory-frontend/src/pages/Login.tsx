@@ -12,7 +12,7 @@ export default function Login() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const res = await axios.post('https://localhost:5001/api/auth/login', {
+            const res = await axios.post('http://localhost:5200/api/auth/login', {
                 username,
                 password,
             });
