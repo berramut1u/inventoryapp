@@ -6,24 +6,34 @@ interface AuthContextType {
     logout: () => void;
 }
 
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-    const [token, setToken] = useState<string | null>(null);
+export function AuthProvider({ children }: { children: ReactNode }) {
+  // Initialize from localStorage (or null)
+  const [token, setToken] = useState<string | null>(
+    () => localStorage.getItem('token')
+  );
 
-    const login = (newToken: string) => setToken(newToken);
-    const logout = () => setToken(null);
+  const login = (newToken: string) => {
+    setToken(newToken);
+    localStorage.setItem('token', newToken);
+  };
 
-    return (
-        <AuthContext.Provider value={{ token, login, logout }}>
-            {children}
-        </AuthContext.Provider>
-    );
-};
+  const logout = () => {
+    setToken(null);
+    localStorage.removeItem('token');
+  };
 
-//  Add this hook for easier access
+  return (
+    <AuthContext.Provider value={{ token, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+// Custom hook for easy access
 export function useAuth() {
-    const context = useContext(AuthContext);
-    if (!context) throw new Error("useAuth must be used within an AuthProvider");
-    return context;
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be inside AuthProvider');
+  return context;
 }

@@ -20,7 +20,7 @@ builder.Services.AddCors(options =>
 });
 
 var jwtSettings = builder.Configuration.GetSection("Jwt");
-var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]);
+var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]!);
 
 builder.Services.AddAuthentication(options =>
 {
@@ -33,25 +33,30 @@ builder.Services.AddAuthentication(options =>
     {
         ValidateIssuer = true,
         ValidateAudience = true,
+        ValidIssuer = "inventoryapp",
+        ValidAudience = "MyDotnetSqlAppUsers",
         ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtSettings["Issuer"],
-        ValidAudience = jwtSettings["Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(key)
+        IssuerSigningKey = new SymmetricSecurityKey(key),
+        ValidateIssuerSigningKey = true
     };
 });
 
 builder.Services.AddAuthorization();
+builder.Services.AddControllers();
+
 
 // Add services
-builder.Services.AddControllers();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
 
 // Middleware
-app.UseHttpsRedirection();     // (Opsiyonel ama genelde olur)
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
 
 app.UseRouting();              // CORS'tan önce routing lazým
 app.UseCors("AllowFrontend");
@@ -59,6 +64,7 @@ app.UseCors("AllowFrontend");
 
 app.UseAuthentication();       // Auth bundan sonra
 app.UseAuthorization();
+
 
 app.MapControllers();
 

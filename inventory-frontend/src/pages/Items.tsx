@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import api from '../api/api';
 
@@ -19,17 +19,17 @@ export default function Items() {
 
     const fetchItems = async () => {
         try {
-            const res = await axios.get('/inventory');
+            const res = await api.get('/inventory');
             setItems(res.data);
-        } catch (err) {
+        } catch {
             alert('Failed to fetch items');
         }
     };
-
+    
     const addItem = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await axios.post('/inventory', { name, quantity, type });
+            await api.post('/inventory', { name, quantity, type });
             setName('');
             setQuantity(1);
             setType('');
@@ -41,7 +41,7 @@ export default function Items() {
 
     const deleteItem = async (id: number) => {
         try {
-            await axios.delete(`/inventory/${id}`);
+            await api.delete(`/inventory/${id}`);
             fetchItems();
         } catch {
             alert('Failed to delete item');

@@ -1,6 +1,6 @@
-import { useContext, useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
-import axios from 'axios';
+import api from '../api/api';
 import { useNavigate } from 'react-router-dom';
 
 export default function Login() {
@@ -12,13 +12,12 @@ export default function Login() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const res = await axios.post('http://localhost:5200/api/auth/login', {
-                username,
-                password,
-            });
-            login(res.data.token);
+            // Use your api client so it picks up baseURL and CORS
+            const res = await api.post('/auth/login', { username, password });
+            login(res.data.token);           // saves to context + localStorage
             navigate('/items');
-        } catch (err) {
+        } catch (err: any) {
+            console.error(err.response?.data || err.message);
             alert('Login failed');
         }
     };
@@ -29,7 +28,7 @@ export default function Login() {
                 type="text"
                 placeholder="Username"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={e => setUsername(e.target.value)}
                 className="border p-2 rounded"
                 required
             />
@@ -37,7 +36,7 @@ export default function Login() {
                 type="password"
                 placeholder="Password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={e => setPassword(e.target.value)}
                 className="border p-2 rounded"
                 required
             />

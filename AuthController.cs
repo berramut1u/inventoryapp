@@ -1,9 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using inventoryapp.Data;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using inventoryapp.Data;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -40,7 +41,7 @@ public class AuthController : ControllerBase
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim(JwtRegisteredClaimNames.UniqueName, user.Username)
+            new Claim(JwtRegisteredClaimNames.UniqueName, user.Username),
         };
 
         var creds = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256);
@@ -55,6 +56,7 @@ public class AuthController : ControllerBase
         return Ok(new { token = new JwtSecurityTokenHandler().WriteToken(token) });
     }
 }
+
 
 public class LoginDto
 {
