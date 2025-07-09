@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import api from '../api/api';
 
@@ -21,23 +22,44 @@ export default function Items() {
         try {
             const res = await api.get('/inventory');
             setItems(res.data);
-        } catch {
+        } catch (err: any) {
+            console.error('FETCH ERROR', err.response || err);
             alert('Failed to fetch items');
         }
     };
+
     
     const addItem = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // 1) Attempt to POST
         try {
-            await api.post('/inventory', { name, quantity, type });
-            setName('');
-            setQuantity(1);
-            setType('');
-            fetchItems();
+            const res = await api.post('/inventory', {
+                name: name.trim(),
+                quantity: quantity,
+                type: type.trim(),
+            });
+            // Optionally, you can inspect res.status (should be 201)
+        } catch (err: any) {
+            console.error('AddItem error:', err.response?.data || err.message);
+            return alert(
+                err.response?.data?.error
+                    ? `Add failed: ${err.response.data.error}`
+                    : 'Failed to add item'
+            );
+        }
+
+        // 2) Clear form & reload list
+        setName('');
+        setQuantity(1);
+        setType('');
+        try {
+            await fetchItems();
         } catch {
-            alert('Failed to add item');
+            console.warn('Item added but failed to reload list');
         }
     };
+
 
     const deleteItem = async (id: number) => {
         try {
@@ -46,7 +68,7 @@ export default function Items() {
         } catch {
             alert('Failed to delete item');
         }
-    };
+    }; 
 
     useEffect(() => {
         fetchItems();
@@ -56,6 +78,12 @@ export default function Items() {
         <div className="p-6 max-w-2xl mx-auto">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold">Inventory Items</h1>
+                <Link
+                    to="/moves"
+                    className="text-blue-600 underline hover:text-blue-800"
+                >
+                    View Moves
+                </Link>
                 <button
                     onClick={logout}
                     className="bg-red-500 text-white px-4 py-2 rounded"

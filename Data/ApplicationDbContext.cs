@@ -12,7 +12,19 @@ namespace inventoryapp.Data
         public DbSet<InventoryItem> InventoryItems { get; set; }
 
         public DbSet<InventoryAudit> InventoryAudits { get; set; }
-    }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            // configure InventoryAudits → InventoryItems FK to Restrict deletes
+            modelBuilder.Entity<InventoryAudit>()
+                .HasOne(a => a.InventoryItem)
+                .WithMany(i => i.Audits)
+                .HasForeignKey(a => a.InventoryItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+        }
+    }   
 }
 
 
@@ -41,6 +53,10 @@ public class InventoryItem
     // Optional: who added it (for audit)
     public int AddedByUserId { get; set; }
     public User? AddedByUser { get; set; }
+
+    public bool IsDeleted { get; set; }
+    public ICollection<InventoryAudit> Audits { get; set; } = new List<InventoryAudit>();
+
 }
 
 
@@ -49,6 +65,8 @@ public class InventoryAudit
     public int Id { get; set; }
 
     public int InventoryItemId { get; set; }
+
+    public InventoryItem? InventoryItem { get; set; }
 
     public string Action { get; set; } = string.Empty; // e.g., "Added", "Updated", "Deleted"
 

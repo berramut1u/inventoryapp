@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using inventoryapp.Data;      // ← adjust to match your namespace
+using inventoryapp.Data;      
 
 public class ApplicationDbContextFactory
     : IDesignTimeDbContextFactory<ApplicationDbContext>

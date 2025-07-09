@@ -57,6 +57,11 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
+
 
 app.UseRouting();              // CORS'tan önce routing lazým
 app.UseCors("AllowFrontend");

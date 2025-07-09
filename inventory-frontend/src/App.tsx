@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth, AuthProvider } from './auth/AuthContext';
 import Login from './pages/Login';
 import Items from './pages/Items';
+import Moves from './pages/Moves';
 
 function PrivateRoute({ children }: { children: JSX.Element }) {
     const { token } = useAuth();
@@ -19,6 +20,7 @@ export default function App() {
                         path="/items"
                         element={<PrivateRoute><Items /></PrivateRoute>}
                     />
+                    <Route path="/moves" element={<Moves />} />
                     <Route path="*" element={<Navigate to="/login" replace />} />
                 </Routes>
             </BrowserRouter>
