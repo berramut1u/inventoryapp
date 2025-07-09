@@ -129,8 +129,34 @@ public class InventoryController : ControllerBase
     }
 
 
+    [HttpPut("{id}")]
+    [Authorize]
+    public async Task<IActionResult> UpdateItem(int id, [FromBody] UpdateInventoryItemDto dto)
+    {
+        var item = await _ctx.InventoryItems.FindAsync(id);
+        if (item == null) return NotFound();
 
+        // apply changes
+        item.Name = dto.Name;
+        item.Quantity = dto.Quantity;
+        item.Type = dto.Type;
 
+        // audit
+        var userId = int.Parse(
+            User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+              ?? User.FindFirst("sub")!.Value
+        );
+        _ctx.InventoryAudits.Add(new InventoryAudit
+        {
+            InventoryItemId = item.Id,
+            Action = "Updated",
+            PerformedByUserId = userId,
+            Timestamp = DateTime.UtcNow
+        });
+
+        await _ctx.SaveChangesAsync();
+        return NoContent();
+    }
 
 
     // GET api/inventory/moves
