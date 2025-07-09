@@ -1,4 +1,3 @@
-// src/pages/Items.tsx
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
@@ -10,75 +9,70 @@ interface InventoryItem {
     quantity: number;
     type: string;
     addedDate: string;
+    addedBy: string;
 }
 
 export default function Items() {
     const { logout } = useAuth();
-    const [items, setItems] = useState<InventoryItem[]>([]);
-    const [editingId, setEditingId] = useState<number | null>(null);
-    const [editForm, setEditForm] = useState({ name: '', quantity: 0, type: '' });
+
+    // rawItems: every row from the backend
+    const [rawItems, setRawItems] = useState<InventoryItem[]>([]);
+
+    // add form
     const [showAdd, setShowAdd] = useState(false);
     const [addForm, setAddForm] = useState({ name: '', quantity: 1, type: '' });
 
+    // edit
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const [editForm, setEditForm] = useState({ name: '', quantity: 0, type: '' });
+
+    // 1) fetch raw rows
     const fetchItems = async () => {
         try {
             const res = await api.get<InventoryItem[]>('/inventory');
-            setItems(groupByNameType(res.data));
+            setRawItems(res.data);
         } catch {
             alert('Failed to fetch items');
         }
     };
 
-    function groupByNameType(arr: InventoryItem[]): InventoryItem[] {
-        const map = new Map<string, InventoryItem>();
-        arr.forEach(item => {
-            const key = `${item.name}|${item.type}`;
-            if (map.has(key)) {
-                map.get(key)!.quantity += item.quantity;
-            } else {
-                map.set(key, { ...item });
-            }
-        });
-        return Array.from(map.values());
-    }
-
+    // 2) add new
     const addItem = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await api.post('/inventory', {
-                name: addForm.name.trim(),
-                quantity: addForm.quantity,
-                type: addForm.type.trim(),
-            });
+            await api.post('/inventory', addForm);
             setAddForm({ name: '', quantity: 1, type: '' });
             setShowAdd(false);
-            await fetchItems();
-        } catch (err: any) {
-            alert(err.response?.data?.error ? `Add failed: ${err.response.data.error}` : 'Failed to add item');
-        }
-    };
-
-    const deleteItem = async (id: number) => {
-        try {
-            await api.delete(`/inventory/${id}`);
-            await fetchItems();
+            fetchItems();
         } catch {
-            alert('Failed to delete item');
+            alert('Failed to add');
         }
     };
 
+    // 3) start editing
     const startEdit = (item: InventoryItem) => {
         setEditingId(item.id);
         setEditForm({ name: item.name, quantity: item.quantity, type: item.type });
     };
 
+    // 4) save update
     const saveEdit = async (id: number) => {
         try {
             await api.put(`/inventory/${id}`, editForm);
             setEditingId(null);
-            await fetchItems();
+            fetchItems();
         } catch {
-            alert('Failed to update item');
+            alert('Failed to update');
+        }
+    };
+
+    // 5) delete
+    const deleteItem = async (id: number) => {
+        try {
+            await api.delete(`/inventory/${id}`);
+            fetchItems();
+        } catch {
+            alert('Failed to delete');
         }
     };
 
@@ -86,21 +80,33 @@ export default function Items() {
         fetchItems();
     }, []);
 
+    // 6) group + sum by name|type
+    const grouped = rawItems.reduce((map, item) => {
+        const key = `${item.name}|${item.type}`;
+        if (!map.has(key)) {
+            map.set(key, { ...item }); // copy full item
+        } else {
+            map.get(key)!.quantity += item.quantity;
+        }
+        return map;
+    }, new Map<string, InventoryItem>());
+
+    const items = Array.from(grouped.values());
+
     return (
         <div className="p-6 max-w-2xl mx-auto">
+            {/* header */}
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold">Inventory Items</h1>
                 <div className="space-x-4">
-                    <Link to="/moves" className="text-blue-600 underline hover:text-blue-800">
-                        View Moves
-                    </Link>
+                    <Link to="/moves" className="bg-red-500 text-white px-4 py-2 rounded">View Moves</Link>
                     <button onClick={logout} className="bg-red-500 text-white px-4 py-2 rounded">
                         Logout
                     </button>
                 </div>
             </div>
 
-            {/* Add Section */}
+            {/* Add button / form */}
             <div className="flex justify-center mb-6">
                 {!showAdd ? (
                     <button
@@ -113,7 +119,7 @@ export default function Items() {
                     <form onSubmit={addItem} className="flex flex-col gap-2 w-full max-w-md">
                         <input
                             type="text"
-                            placeholder="Item name"
+                            placeholder="Name"
                             value={addForm.name}
                             onChange={e => setAddForm(f => ({ ...f, name: e.target.value }))}
                             required
@@ -124,8 +130,8 @@ export default function Items() {
                             placeholder="Quantity"
                             value={addForm.quantity}
                             onChange={e => setAddForm(f => ({ ...f, quantity: +e.target.value }))}
-                            required
                             min={1}
+                            required
                             className="border p-2 rounded"
                         />
                         <input
@@ -152,10 +158,13 @@ export default function Items() {
                 )}
             </div>
 
-            {/* List Section */}
+            {/* grouped list */}
             <ul className="space-y-2">
                 {items.map(item => (
-                    <li key={item.id} className="flex justify-between items-center border p-3 rounded shadow">
+                    <li
+                        key={`${item.name}|${item.type}`}
+                        className="flex justify-between items-center border p-3 rounded shadow"
+                    >
                         {editingId === item.id ? (
                             <div className="flex-1 flex gap-2">
                                 <input
@@ -180,7 +189,7 @@ export default function Items() {
                                 <strong>{item.name}</strong> – {item.quantity} × {item.type}
                                 <br />
                                 <small className="text-gray-500">
-                                    Added: {new Date(item.addedDate).toLocaleDateString()}
+                                    Added: {new Date(item.addedDate).toLocaleDateString()} by {item.addedBy}
                                 </small>
                             </div>
                         )}
