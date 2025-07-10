@@ -99,7 +99,7 @@ export default function Items() {
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold">Inventory Items</h1>
                 <div className="space-x-4">
-                    <Link to="/moves" className="bg-red-500 text-white px-4 py-2 rounded">View Moves</Link>
+                    <Link to="/moves" className="text-blue-600 underline">View Moves</Link>
                     <button onClick={logout} className="bg-red-500 text-white px-4 py-2 rounded">
                         Logout
                     </button>
@@ -189,7 +189,12 @@ export default function Items() {
                                 <strong>{item.name}</strong> – {item.quantity} × {item.type}
                                 <br />
                                 <small className="text-gray-500">
-                                    Added: {new Date(item.addedDate).toLocaleDateString()} by {item.addedBy}
+                                        Added: {new Date(item.addedDate + 'Z').toLocaleTimeString('tr-TR', {
+                                            timeZone: 'Europe/Istanbul',
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                            second: '2-digit'
+                                        })} by {item.addedBy}
                                 </small>
                             </div>
                         )}
