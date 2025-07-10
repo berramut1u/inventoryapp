@@ -4,10 +4,20 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
-
 var builder = WebApplication.CreateBuilder(args);
 
-// CORS tanýmý
+// 1) Read the key into a local variable
+var jwtSettings = builder.Configuration.GetSection("Jwt");
+var jwtKey = jwtSettings["Key"];
+if (string.IsNullOrWhiteSpace(jwtKey))
+{
+    throw new InvalidOperationException("Configuration error: JWT Key is missing under Jwt:Key");
+}
+
+// 2) Convert to bytes now that we've guaranteed it's not null
+var key = Encoding.UTF8.GetBytes(jwtKey);
+
+// CORS definition
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
@@ -18,9 +28,6 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod();
     });
 });
-
-var jwtSettings = builder.Configuration.GetSection("Jwt");
-var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]!);
 
 builder.Services.AddAuthentication(options =>
 {
@@ -43,9 +50,6 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 builder.Services.AddControllers();
-
-
-// Add services
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -56,21 +60,14 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
-
-if (app.Environment.IsDevelopment())
+else
 {
     app.UseDeveloperExceptionPage();
 }
 
-
-app.UseRouting();              // CORS'tan önce routing lazým
+app.UseRouting();
 app.UseCors("AllowFrontend");
-// CORS burada olmalý
-
-app.UseAuthentication();       // Auth bundan sonra
+app.UseAuthentication();
 app.UseAuthorization();
-
-
 app.MapControllers();
-
 app.Run();

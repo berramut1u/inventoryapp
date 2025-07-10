@@ -1,6 +1,7 @@
-﻿using inventoryapp.Data;
-using Microsoft.AspNetCore.Authorization;
+﻿// src/controllers/AuthController.cs
+using inventoryapp.Data;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -11,12 +12,24 @@ using System.Text;
 public class AuthController : ControllerBase
 {
     private readonly ApplicationDbContext _ctx;
-    private readonly IConfiguration _config;
+    private readonly string _jwtKey;
+    private readonly string _jwtIssuer;
+    private readonly string _jwtAudience;
+    private readonly int _jwtExpireMinutes;
 
     public AuthController(ApplicationDbContext ctx, IConfiguration config)
     {
         _ctx = ctx;
-        _config = config;
+
+        // Read and validate JWT settings with null-coalescing
+        _jwtKey = config["Jwt:Key"]
+            ?? throw new InvalidOperationException("JWT Key is not configured (Jwt:Key).");
+        _jwtIssuer = config["Jwt:Issuer"]
+            ?? throw new InvalidOperationException("JWT Issuer is not configured (Jwt:Issuer).");
+        _jwtAudience = config["Jwt:Audience"]
+            ?? throw new InvalidOperationException("JWT Audience is not configured (Jwt:Audience).");
+        _jwtExpireMinutes = config.GetValue<int?>("Jwt:ExpireMinutes")
+            ?? throw new InvalidOperationException("JWT ExpireMinutes is not configured or invalid (Jwt:ExpireMinutes).");
     }
 
     [HttpPost("register")]
@@ -35,8 +48,8 @@ public class AuthController : ControllerBase
         if (user == null /*|| !BCrypt.Verify(dto.Password, user.PasswordHash)*/)
             return Unauthorized();
 
-        var jwtSettings = _config.GetSection("Jwt");
-        var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]);
+        // Safe conversion to bytes
+        var keyBytes = Encoding.UTF8.GetBytes(_jwtKey);
 
         var claims = new[]
         {
@@ -44,22 +57,22 @@ public class AuthController : ControllerBase
             new Claim(JwtRegisteredClaimNames.UniqueName, user.Username),
         };
 
-        var creds = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256);
+        var creds = new SigningCredentials(new SymmetricSecurityKey(keyBytes), SecurityAlgorithms.HmacSha256);
         var token = new JwtSecurityToken(
-            issuer: jwtSettings["Issuer"],
-            audience: jwtSettings["Audience"],
+            issuer: _jwtIssuer,
+            audience: _jwtAudience,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(int.Parse(jwtSettings["ExpireMinutes"]!)),
+            expires: DateTime.UtcNow.AddMinutes(_jwtExpireMinutes),
             signingCredentials: creds
         );
 
-        return Ok(new { token = new JwtSecurityTokenHandler().WriteToken(token) });
+        var jwt = new JwtSecurityTokenHandler().WriteToken(token);
+        return Ok(new { token = jwt });
     }
 }
 
-
 public class LoginDto
 {
-    public string Username { get; set; } = "";
-    public string Password { get; set; } = "";
+    public string Username { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
 }

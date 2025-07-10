@@ -12,6 +12,7 @@ interface InventoryItem {
     addedBy: string;
 }
 
+
 export default function Items() {
     const { logout } = useAuth();
 
@@ -80,18 +81,7 @@ export default function Items() {
         fetchItems();
     }, []);
 
-    // 6) group + sum by name|type
-    const grouped = rawItems.reduce((map, item) => {
-        const key = `${item.name}|${item.type}`;
-        if (!map.has(key)) {
-            map.set(key, { ...item }); // copy full item
-        } else {
-            map.get(key)!.quantity += item.quantity;
-        }
-        return map;
-    }, new Map<string, InventoryItem>());
-
-    const items = Array.from(grouped.values());
+    const items = rawItems;
 
     return (
         <div className="p-6 max-w-2xl mx-auto">
@@ -162,7 +152,7 @@ export default function Items() {
             <ul className="space-y-2">
                 {items.map(item => (
                     <li
-                        key={`${item.name}|${item.type}`}
+                        key={item.id}
                         className="flex justify-between items-center border p-3 rounded shadow"
                     >
                         {editingId === item.id ? (
