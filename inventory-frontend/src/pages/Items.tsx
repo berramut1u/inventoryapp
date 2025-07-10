@@ -41,6 +41,8 @@ export default function Items() {
     const addItem = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            console.log("Adding", addForm);
+
             await api.post('/inventory', addForm);
             setAddForm({ name: '', quantity: 1, type: '' });
             setShowAdd(false);
