@@ -12,22 +12,27 @@ interface InventoryItem {
     addedBy: string;
 }
 
-
 export default function Items() {
     const { logout } = useAuth();
 
-    // rawItems: every row from the backend
+    // all items from backend
     const [rawItems, setRawItems] = useState<InventoryItem[]>([]);
 
     // add form
     const [showAdd, setShowAdd] = useState(false);
     const [addForm, setAddForm] = useState({ name: '', quantity: 1, type: '' });
 
-    // edit
+    // edit form
     const [editingId, setEditingId] = useState<number | null>(null);
     const [editForm, setEditForm] = useState({ name: '', quantity: 0, type: '' });
 
-    // 1) fetch raw rows
+    // filter state
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterType, setFilterType] = useState('All');
+    const [minQty, setMinQty] = useState<number | ''>('');
+    const [maxQty, setMaxQty] = useState<number | ''>('');
+
+    // fetch items
     const fetchItems = async () => {
         try {
             const res = await api.get<InventoryItem[]>('/inventory');
@@ -37,12 +42,42 @@ export default function Items() {
         }
     };
 
-    // 2) add new
+    useEffect(() => {
+        fetchItems();
+    }, []);
+
+    // build list of distinct types
+    const types = Array.from(new Set(rawItems.map(i => i.type))).sort();
+
+    // apply search + type + quantity filters
+    const filteredItems = rawItems.filter(i => {
+        const term = searchTerm.trim().toLowerCase();
+        // search name OR type
+        if (term && !(
+            i.name.toLowerCase().includes(term) ||
+            i.type.toLowerCase().includes(term)
+        )) {
+            return false;
+        }
+        // filter by type selection
+        if (filterType !== 'All' && i.type !== filterType) {
+            return false;
+        }
+        // filter by min Qty
+        if (minQty !== '' && i.quantity < minQty) {
+            return false;
+        }
+        // filter by max Qty
+        if (maxQty !== '' && i.quantity > maxQty) {
+            return false;
+        }
+        return true;
+    });
+
+    // add new item
     const addItem = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            console.log("Adding", addForm);
-
             await api.post('/inventory', addForm);
             setAddForm({ name: '', quantity: 1, type: '' });
             setShowAdd(false);
@@ -52,13 +87,13 @@ export default function Items() {
         }
     };
 
-    // 3) start editing
+    // start editing
     const startEdit = (item: InventoryItem) => {
         setEditingId(item.id);
         setEditForm({ name: item.name, quantity: item.quantity, type: item.type });
     };
 
-    // 4) save update
+    // save edit
     const saveEdit = async (id: number) => {
         try {
             await api.put(`/inventory/${id}`, editForm);
@@ -69,7 +104,7 @@ export default function Items() {
         }
     };
 
-    // 5) delete
+    // delete item
     const deleteItem = async (id: number) => {
         try {
             await api.delete(`/inventory/${id}`);
@@ -78,12 +113,6 @@ export default function Items() {
             alert('Failed to delete');
         }
     };
-
-    useEffect(() => {
-        fetchItems();
-    }, []);
-
-    const items = rawItems;
 
     return (
         <div className="p-6 max-w-2xl mx-auto">
@@ -98,7 +127,46 @@ export default function Items() {
                 </div>
             </div>
 
-            {/* Add button / form */}
+            {/* search + filters */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <input
+                    type="text"
+                    placeholder="Search by name or type"
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    className="border p-2 rounded col-span-1 md:col-span-2"
+                />
+
+                <select
+                    value={filterType}
+                    onChange={e => setFilterType(e.target.value)}
+                    className="border p-2 rounded"
+                >
+                    <option value="All">All Types</option>
+                    {types.map(t => (
+                        <option key={t} value={t}>{t}</option>
+                    ))}
+                </select>
+
+                <div className="flex space-x-2">
+                    <input
+                        type="number"
+                        placeholder="Min Qty"
+                        value={minQty}
+                        onChange={e => setMinQty(e.target.value === '' ? '' : +e.target.value)}
+                        className="border p-2 rounded w-full"
+                    />
+                    <input
+                        type="number"
+                        placeholder="Max Qty"
+                        value={maxQty}
+                        onChange={e => setMaxQty(e.target.value === '' ? '' : +e.target.value)}
+                        className="border p-2 rounded w-full"
+                    />
+                </div>
+            </div>
+
+            {/* add button / form */}
             <div className="flex justify-center mb-6">
                 {!showAdd ? (
                     <button
@@ -150,9 +218,9 @@ export default function Items() {
                 )}
             </div>
 
-            {/* grouped list */}
+            {/* filtered list */}
             <ul className="space-y-2">
-                {items.map(item => (
+                {filteredItems.map(item => (
                     <li
                         key={item.id}
                         className="flex justify-between items-center border p-3 rounded shadow"
@@ -178,15 +246,15 @@ export default function Items() {
                             </div>
                         ) : (
                             <div className="flex-1">
-                                <strong>{item.name}</strong> – {item.quantity} × {item.type}
+                                <strong>{item.name}</strong> &#8211; {item.quantity} x {item.type}
                                 <br />
                                 <small className="text-gray-500">
-                                        Added: {new Date(item.addedDate + 'Z').toLocaleTimeString('tr-TR', {
-                                            timeZone: 'Europe/Istanbul',
-                                            hour: '2-digit',
-                                            minute: '2-digit',
-                                            second: '2-digit'
-                                        })} by {item.addedBy}
+                                    Added: {new Date(item.addedDate + 'Z').toLocaleTimeString('tr-TR', {
+                                        timeZone: 'Europe/Istanbul',
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                        second: '2-digit'
+                                    })} by {item.addedBy}
                                 </small>
                             </div>
                         )}
@@ -206,6 +274,9 @@ export default function Items() {
                         </div>
                     </li>
                 ))}
+                {filteredItems.length === 0 && (
+                    <li className="text-center text-gray-500">No items match your filters.</li>
+                )}
             </ul>
         </div>
     );
