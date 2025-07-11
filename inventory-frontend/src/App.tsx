@@ -20,7 +20,7 @@ export default function App() {
                         path="/items"
                         element={<PrivateRoute><Items /></PrivateRoute>}
                     />
-                    <Route path="/moves" element={<Moves />} />
+                    <Route path="/moves/:id" element={<Moves />} />
                     <Route path="*" element={<Navigate to="/login" replace />} />
                 </Routes>
             </BrowserRouter>

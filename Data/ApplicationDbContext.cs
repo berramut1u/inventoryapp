@@ -41,20 +41,13 @@ public class User
 public class InventoryItem
 {
     public int Id { get; set; }
-
     public string Name { get; set; } = string.Empty;
-
     public int Quantity { get; set; }
-
-    public string Type { get; set; } = string.Empty; // e.g., "Laptop", "Cable", etc.
-
-    public DateTime AddedDate { get; set; } = DateTime.UtcNow;
-
-    // Optional: who added it (for audit)
-    public int AddedByUserId { get; set; }
+    public string Type { get; set; } = string.Empty; 
+    public DateTime AddedDate { get; set; } = DateTime.UtcNow;    public int AddedByUserId { get; set; }
     public User? AddedByUser { get; set; }
-
     public bool IsDeleted { get; set; }
+    public int ReorderThreshold { get; set; } = 0;
     public ICollection<InventoryAudit> Audits { get; set; } = new List<InventoryAudit>();
 
 }

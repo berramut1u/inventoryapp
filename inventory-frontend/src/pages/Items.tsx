@@ -7,6 +7,7 @@ interface InventoryItem {
     id: number;
     name: string;
     quantity: number;
+    reorderThreshold: number;
     type: string;
     addedDate: string;
     addedBy: string;
@@ -20,11 +21,11 @@ export default function Items() {
 
     // add form
     const [showAdd, setShowAdd] = useState(false);
-    const [addForm, setAddForm] = useState({ name: '', quantity: 1, type: '' });
+    const [addForm, setAddForm] = useState({ name: '', quantity: 1, type: '', reorderThreshold: 0 });
 
     // edit form
     const [editingId, setEditingId] = useState<number | null>(null);
-    const [editForm, setEditForm] = useState({ name: '', quantity: 0, type: '' });
+    const [editForm, setEditForm] = useState({ name: '', quantity: 0, type: '', reorderThreshold: 0 });
 
     // filter state
     const [searchTerm, setSearchTerm] = useState('');
@@ -79,7 +80,7 @@ export default function Items() {
         e.preventDefault();
         try {
             await api.post('/inventory', addForm);
-            setAddForm({ name: '', quantity: 1, type: '' });
+            setAddForm({ name: '', quantity: 1, type: '', reorderThreshold: 0 });
             setShowAdd(false);
             fetchItems();
         } catch {
@@ -90,7 +91,7 @@ export default function Items() {
     // start editing
     const startEdit = (item: InventoryItem) => {
         setEditingId(item.id);
-        setEditForm({ name: item.name, quantity: item.quantity, type: item.type });
+        setEditForm({ name: item.name, quantity: item.quantity, type: item.type, reorderThreshold: item.reorderThreshold });
     };
 
     // save edit
@@ -202,10 +203,23 @@ export default function Items() {
                             required
                             className="border p-2 rounded"
                         />
+                        <input
+                            type="number"
+                            placeholder="Reorder threshold"
+                            value={addForm.reorderThreshold ?? ''}
+                            onChange={e => setAddForm(f => ({
+                                ...f,
+                                reorderThreshold: +e.target.value
+                            }))}
+                            min={0}
+                            required
+                            className="border p-2 rounded"
+                        />
+
                         <div className="flex justify-end space-x-2">
                             <button
                                 type="button"
-                                onClick={() => { setShowAdd(false); setAddForm({ name: '', quantity: 1, type: '' }); }}
+                                    onClick={() => { setShowAdd(false); setAddForm({ name: '', quantity: 1, type: '', reorderThreshold: 0 }); }}
                                 className="px-4 py-2 rounded border"
                             >
                                 Cancel
@@ -245,8 +259,20 @@ export default function Items() {
                                 />
                             </div>
                         ) : (
-                            <div className="flex-1">
+                            <Link
+                                to={`/moves/${item.id}`}
+                                className="flex-1 hover:bg-gray-100 p-2 rounded"
+                            >
                                 <strong>{item.name}</strong> &#8211; {item.quantity} x {item.type}
+                                    {item.quantity < item.reorderThreshold && (
+                                        <>
+                                        { ' '}
+                                    <span className="ml-2 text-red-600 font-bold">
+                                         LOW STOCK
+                                            </span>
+                                        </>
+                                )}
+
                                 <br />
                                 <small className="text-gray-500">
                                     Added: {new Date(item.addedDate + 'Z').toLocaleTimeString('tr-TR', {
@@ -256,7 +282,7 @@ export default function Items() {
                                         second: '2-digit'
                                     })} by {item.addedBy}
                                 </small>
-                            </div>
+                            </Link>
                         )}
                         <div className="flex gap-2">
                             {editingId === item.id ? (

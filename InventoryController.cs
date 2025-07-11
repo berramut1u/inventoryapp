@@ -22,11 +22,13 @@ public class InventoryController : ControllerBase
             .Include(i => i.AddedByUser)
             .ToListAsync();
 
-        return Ok(items.Select(i => new {
+        return Ok(items.Select(i => new
+        {
             i.Id,
             i.Name,
             i.Quantity,
             i.Type,
+            i.ReorderThreshold,
             i.AddedDate,
             AddedBy = i.AddedByUser!.Username
         }));
@@ -86,6 +88,7 @@ public class InventoryController : ControllerBase
                 Name = name,
                 Quantity = dto.Quantity,
                 Type = type,
+                ReorderThreshold = dto.ReorderThreshold,
                 AddedByUserId = userId,
                 AddedDate = DateTime.UtcNow
             };
@@ -122,6 +125,7 @@ public class InventoryController : ControllerBase
         item.Name = dto.Name;
         item.Quantity = dto.Quantity;
         item.Type = dto.Type;
+        item.ReorderThreshold = dto.ReorderThreshold;
 
         var userId = int.Parse(
           User.FindFirst(ClaimTypes.NameIdentifier)?.Value
@@ -160,22 +164,34 @@ public class InventoryController : ControllerBase
         return NoContent();
     }
 
-    // GET: api/inventory/moves
-    [HttpGet("moves"), Authorize]
-    public async Task<IActionResult> GetMoves()
+    // GET: api/inventory/{id}/moves
+    [HttpGet("{id}/moves"), Authorize]
+    public async Task<IActionResult> GetMovesForItem(int id)
     {
-        var flat = await _ctx.InventoryAudits
-            .Include(a => a.InventoryItem)
+        // ensure the item exists (and isn’t deleted)
+        var item = await _ctx.InventoryItems
+            .AsNoTracking()
+            .FirstOrDefaultAsync(i => i.Id == id && !i.IsDeleted);
+        if (item == null) return NotFound();
+
+        var audits = await _ctx.InventoryAudits
+            .Where(a => a.InventoryItemId == id)
             .Include(a => a.PerformedByUser)
             .OrderByDescending(a => a.Timestamp)
-            .Select(a => new {
-                id = a.InventoryItemId,
-                name = a.InventoryItem!.Name,
-                action = a.Action,
+            .Select(a => new
+            {
+                a.Id,
+                a.Action,
                 performedBy = a.PerformedByUser!.Username,
-                timestamp = a.Timestamp
+                a.Timestamp
             })
             .ToListAsync();
-        return Ok(flat);
+
+        return Ok(new
+        {
+            item = new { item.Id, item.Name, item.Type },
+            moves = audits
+        });
     }
 }
+
