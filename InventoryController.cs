@@ -250,5 +250,61 @@ public class InventoryController : ControllerBase
         });
     }
 
+    // GET: api/inventory/deleted
+    [HttpGet("deleted"), Authorize]
+    public async Task<IActionResult> GetDeletedItems()
+    {
+        var items = await _ctx.InventoryItems
+            .Where(i => i.IsDeleted)
+            .Select(i => new {
+                i.Id,
+                i.Name,
+                i.Quantity,
+                i.Type,
+                i.AddedDate,
+                i.ReorderThreshold
+            })
+            .ToListAsync();
+        return Ok(items);
+    }
+
+    // PUT: api/inventory/{id}/restore
+    [HttpPut("{id}/restore"), Authorize]
+    public async Task<IActionResult> RestoreItem(int id)
+    {
+        var item = await _ctx.InventoryItems.FindAsync(id);
+        if (item == null) return NotFound();
+        item.IsDeleted = false;
+        await _ctx.SaveChangesAsync();
+        return NoContent();
+    }
+
+    // DELETE: api/inventory/{id}/permanent
+    [HttpDelete("{id}/permanent"), Authorize]
+    public async Task<IActionResult> DeletePermanently(int id)
+    {
+        try
+        {
+            var item = await _ctx.InventoryItems.FindAsync(id);
+            if (item == null) return NotFound();
+
+            // Delete related audits first
+            var audits = _ctx.InventoryAudits.Where(a => a.InventoryItemId == id);
+            _ctx.InventoryAudits.RemoveRange(audits);
+
+            // Then delete the item
+            _ctx.InventoryItems.Remove(item);
+            await _ctx.SaveChangesAsync();
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error permanently deleting item {id}: {ex.Message}");
+            return StatusCode(500, "Internal server error: " + ex.Message);
+        }
+    }
+
+
 }
 
