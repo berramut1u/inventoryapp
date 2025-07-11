@@ -193,5 +193,62 @@ public class InventoryController : ControllerBase
             moves = audits
         });
     }
+
+    // POST: api/inventory/{id}/moves
+    [HttpPost("{id}/move"), Authorize]
+    public async Task<IActionResult> MoveStock(int id, [FromBody] InventoryMoveDto dto)
+    {
+        // 1) find the item
+        var item = await _ctx.InventoryItems.FindAsync(id);
+        if (item == null || item.IsDeleted)
+            return NotFound();
+
+        // 2) validate
+        if (dto.Amount <= 0 ||
+           (dto.Direction != "In" && dto.Direction != "Out"))
+        {
+            return BadRequest("Amount must be > 0 and Direction either 'In' or 'Out'.");
+        }
+
+        // 3) apply the move
+        if (dto.Direction == "Out")
+        {
+            if (item.Quantity < dto.Amount)
+                return BadRequest("Not enough stock to remove.");
+            item.Quantity -= dto.Amount;
+        }
+        else // "In"
+        {
+            item.Quantity += dto.Amount;
+        }
+
+        // 4) audit
+        var userId = int.Parse(
+          User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+          ?? User.FindFirst("sub")!.Value);
+
+        _ctx.InventoryAudits.Add(new InventoryAudit
+        {
+            InventoryItemId = item.Id,
+            Action = $"{dto.Direction} {dto.Amount}"
+                   + (string.IsNullOrWhiteSpace(dto.Reason) ? "" : $" ({dto.Reason!.Trim()})"),
+            PerformedByUserId = userId,
+            Timestamp = DateTime.UtcNow
+        });
+
+        await _ctx.SaveChangesAsync();
+
+        // 5) return the updated item
+        return Ok(new
+        {
+            item.Id,
+            item.Name,
+            item.Type,
+            item.Quantity,
+            item.ReorderThreshold,
+            item.AddedDate
+        });
+    }
+
 }
 
