@@ -44,7 +44,7 @@ export default function Moves() {
                 <div className="flex gap-3">
                     <Link
                         to="/items"
-                        className="px-4 py-2 rounded-md bg-blue-400 text-white hover:bg-blue-500 transition"
+                        className="px-4 py-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 transition"
                     >
                         Back to Items
                     </Link>
