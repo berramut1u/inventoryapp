@@ -93,7 +93,7 @@ export default function Items() {
                     <div key={item.id} className="bg-white rounded-2xl shadow p-4 flex flex-col justify-between">
                         <Link to={`/moves/${item.id}`} className="flex-1">
                             <h3 className="font-semibold">{item.name}</h3>
-                            <p className="text-sm text-gray-600">{item.quantity} × {item.type}<br />Added: {new Date(item.addedDate + 'Z').toLocaleString('tr-TR')}</p>
+                            <p className="text-sm text-gray-600">{item.quantity} - {item.type}<br />Added: {new Date(item.addedDate + 'Z').toLocaleString('tr-TR')}</p>
                         </Link>
                         <div className="mt-4 flex justify-end gap-2">
                             <button onClick={() => openEdit(item)} title="Edit" className="p-1 rounded hover:bg-gray-100"><Pencil size={16} /></button>
