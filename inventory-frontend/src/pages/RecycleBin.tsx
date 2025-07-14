@@ -11,6 +11,7 @@ interface DeletedItem {
     addedDate: string;
     reorderThreshold: number;
     selected?: boolean;
+    deletedAt: string;
 }
 
 export default function RecycleBin() {
@@ -84,7 +85,7 @@ export default function RecycleBin() {
                         <th className="border p-2">Quantity</th>
                         <th className="border p-2">Type</th>
                         <th className="border p-2">Reorder Threshold</th>
-                        <th className="border p-2">Added Date</th>
+                        <th className="border p-2">Deleted Date</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -97,7 +98,7 @@ export default function RecycleBin() {
                             <td className="border p-2">{item.quantity}</td>
                             <td className="border p-2">{item.type}</td>
                             <td className="border p-2">{item.reorderThreshold}</td>
-                            <td className="border p-2">{new Date(item.addedDate + 'Z').toLocaleDateString()}</td>
+                            <td className="border p-2">{item.deletedAt ? new Date(item.deletedAt + 'Z').toLocaleString() : '-'}</td>
                         </tr>
                     ))}
                     {items.length === 0 && (

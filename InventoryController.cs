@@ -194,7 +194,7 @@ public class InventoryController : ControllerBase
         });
     }
 
-    // POST: api/inventory/{id}/moves
+    // POST: api/inventory/{id}/move
     [HttpPost("{id}/move"), Authorize]
     public async Task<IActionResult> MoveStock(int id, [FromBody] InventoryMoveDto dto)
     {
@@ -254,22 +254,41 @@ public class InventoryController : ControllerBase
     [HttpGet("deleted"), Authorize]
     public async Task<IActionResult> GetDeletedItems()
     {
-        var items = await _ctx.InventoryItems
+        // Fetch all soft-deleted items
+        var deletedItems = await _ctx.InventoryItems
             .Where(i => i.IsDeleted)
-            .Select(i => new {
-                i.Id,
-                i.Name,
-                i.Quantity,
-                i.Type,
-                i.AddedDate,
-                i.ReorderThreshold
+            .ToListAsync();
+
+        var deletedIds = deletedItems.Select(i => i.Id).ToList();
+
+        // Get the timestamp of the "Deleted" audit for each deleted item
+        var deleteAudits = await _ctx.InventoryAudits
+            .Where(a => deletedIds.Contains(a.InventoryItemId) && a.Action == "Deleted")
+            .GroupBy(a => a.InventoryItemId)
+            .Select(g => new {
+                ItemId = g.Key,
+                DeletedAt = g.Max(a => a.Timestamp)
             })
             .ToListAsync();
-        return Ok(items);
+
+        // Project result including DeletedAt
+        var result = deletedItems.Select(item => new {
+            item.Id,
+            item.Name,
+            item.Quantity,
+            item.Type,
+            item.AddedDate,
+            item.ReorderThreshold,
+            DeletedAt = deleteAudits.FirstOrDefault(d => d.ItemId == item.Id)?.DeletedAt
+        });
+
+        return Ok(result);
     }
 
-    // PUT: api/inventory/{id}/restore
-    [HttpPut("{id}/restore"), Authorize]
+
+
+// PUT: api/inventory/{id}/restore
+[HttpPut("{id}/restore"), Authorize]
     public async Task<IActionResult> RestoreItem(int id)
     {
         var item = await _ctx.InventoryItems.FindAsync(id);
