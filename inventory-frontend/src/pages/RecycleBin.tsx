@@ -1,5 +1,6 @@
+// src/pages/RecycleBin.tsx
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import api from '../api/api';
 
@@ -8,14 +9,14 @@ interface DeletedItem {
     name: string;
     quantity: number;
     type: string;
-    addedDate: string;
     reorderThreshold: number;
-    selected?: boolean;
     deletedAt: string;
+    selected?: boolean;
 }
 
 export default function RecycleBin() {
     const { logout } = useAuth();
+    const navigate = useNavigate();
     const [items, setItems] = useState<DeletedItem[]>([]);
     const [selectAll, setSelectAll] = useState(false);
 
@@ -40,72 +41,112 @@ export default function RecycleBin() {
 
     const restoreSelected = async () => {
         const toRestore = items.filter(i => i.selected);
-        await Promise.all(
-            toRestore.map(i => api.put(`/inventory/${i.id}/restore`))
-        );
+        await Promise.all(toRestore.map(i => api.put(`/inventory/${i.id}/restore`)));
         fetchDeleted();
     };
 
     const deleteSelected = async () => {
         const toDelete = items.filter(i => i.selected);
-        await Promise.all(
-            toDelete.map(i => api.delete(`/inventory/${i.id}/permanent`))
-        );
+        await Promise.all(toDelete.map(i => api.delete(`/inventory/${i.id}/permanent`)));
         fetchDeleted();
     };
 
     return (
-        <div className="p-6 max-w-3xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold">Recycle Bin</h1>
-                <div className="space-x-4">
-                    <Link to="/items" className="text-blue-600 underline">Back to Items</Link>
-                    <button onClick={logout} className="bg-red-500 text-white px-4 py-2 rounded">Logout</button>
+        <div className="min-h-screen flex flex-col bg-gradient-to-br from-purple-300 via-blue-200 to-pink-300">
+            {/* Navbar */}
+            <header className="flex items-center justify-between bg-white/80 backdrop-blur px-6 py-3 shadow-md">
+                <h1 className="text-xl font-bold text-gray-800">Recycle Bin</h1>
+                <div className="flex gap-3">
+                    <Link
+                        to="/items"
+                        className="px-4 py-2 rounded-md bg-blue-400 text-white hover:bg-blue-500 transition"
+                    >
+                        Back to Items
+                    </Link>
+                    <button
+                        onClick={() => { logout(); navigate('/login'); }}
+                        className="px-4 py-2 rounded-md bg-pink-400 text-white hover:bg-pink-500 transition"
+                    >
+                        Logout
+                    </button>
+                </div>
+            </header>
+
+            {/* Card Container */}
+            <div className="px-6 py-8 flex justify-center">
+                <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-6 space-y-6">
+                    {/* Bulk Actions */}
+                    <div className="flex flex-wrap items-center gap-4">
+                        <label className="inline-flex items-center">
+                            <input
+                                type="checkbox"
+                                checked={selectAll}
+                                onChange={toggleSelectAll}
+                                className="h-4 w-4 text-purple-600 border-gray-300 rounded"
+                            />
+                            <span className="ml-2 text-gray-700">Select All</span>
+                        </label>
+                        <button
+                            onClick={restoreSelected}
+                            disabled={!items.some(i => i.selected)}
+                            className="px-4 py-2 rounded-md bg-purple-400 text-white hover:bg-purple-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Restore Selected
+                        </button>
+                        <button
+                            onClick={deleteSelected}
+                            disabled={!items.some(i => i.selected)}
+                            className="px-4 py-2 rounded-md bg-pink-400 text-white hover:bg-pink-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Delete Selected
+                        </button>
+                    </div>
+
+                    {/* Table */}
+                    <div className="overflow-x-auto">
+                        <table className="w-full table-auto border-collapse">
+                            <thead>
+                                <tr className="bg-gray-100">
+                                    <th className="p-3 text-left"></th>
+                                    <th className="p-3 text-left">Name</th>
+                                    <th className="p-3 text-center">Qty</th>
+                                    <th className="p-3 text-left">Type</th>
+                                    <th className="p-3 text-center">Reorder Thresh.</th>
+                                    <th className="p-3 text-left">Deleted At</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                                {items.length > 0 ? items.map(item => (
+                                    <tr key={item.id} className="hover:bg-gray-50">
+                                        <td className="p-3">
+                                            <input
+                                                type="checkbox"
+                                                checked={item.selected}
+                                                onChange={() => toggleSelect(item.id)}
+                                                className="h-4 w-4 text-purple-600 border-gray-300 rounded"
+                                            />
+                                        </td>
+                                        <td className="p-3">{item.name}</td>
+                                        <td className="p-3 text-center">{item.quantity}</td>
+                                        <td className="p-3">{item.type}</td>
+                                        <td className="p-3 text-center">{item.reorderThreshold}</td>
+                                        <td className="p-3">{item.deletedAt
+                                            ? new Date(item.deletedAt + 'Z').toLocaleString('tr-TR')
+                                            : '-'}
+                                        </td>
+                                    </tr>
+                                )) : (
+                                    <tr>
+                                        <td colSpan={6} className="p-6 text-center text-gray-500">
+                                            Recycle Bin is empty.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-
-            <div className="flex items-center mb-4">
-                <label className="inline-flex items-center">
-                    <input type="checkbox" checked={selectAll} onChange={toggleSelectAll} className="mr-2" />
-                    Select All
-                </label>
-                <button onClick={restoreSelected} className="ml-4 bg-green-600 text-white px-4 py-2 rounded" disabled={!items.some(i => i.selected)}>
-                    Restore Selected
-                </button>
-                <button onClick={deleteSelected} className="ml-2 bg-red-600 text-white px-4 py-2 rounded" disabled={!items.some(i => i.selected)}>
-                    Delete Selected
-                </button>
-            </div>
-
-            <table className="w-full border-collapse">
-                <thead>
-                    <tr>
-                        <th className="border p-2"></th>
-                        <th className="border p-2">Name</th>
-                        <th className="border p-2">Quantity</th>
-                        <th className="border p-2">Type</th>
-                        <th className="border p-2">Reorder Threshold</th>
-                        <th className="border p-2">Deleted Date</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {items.map(item => (
-                        <tr key={item.id} className="hover:bg-gray-100">
-                            <td className="border p-2 text-center">
-                                <input type="checkbox" checked={item.selected} onChange={() => toggleSelect(item.id)} />
-                            </td>
-                            <td className="border p-2">{item.name}</td>
-                            <td className="border p-2">{item.quantity}</td>
-                            <td className="border p-2">{item.type}</td>
-                            <td className="border p-2">{item.reorderThreshold}</td>
-                            <td className="border p-2">{item.deletedAt ? new Date(item.deletedAt + 'Z').toLocaleString() : '-'}</td>
-                        </tr>
-                    ))}
-                    {items.length === 0 && (
-                        <tr><td colSpan={6} className="text-center p-4 text-gray-500">Recycle Bin is empty.</td></tr>
-                    )}
-                </tbody>
-            </table>
         </div>
     );
 }
