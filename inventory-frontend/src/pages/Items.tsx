@@ -66,7 +66,7 @@ export default function Items() {
     return (
         <div className="min-h-screen flex flex-col bg-gradient-to-br from-purple-300 via-blue-200 to-pink-300">
             {/* Navbar */}
-            <header className="flex items-center justify-between bg-white/80 backdrop-blur px-6 py-3 shadow-md">
+            <header className="flex items-center justify-between bg-white/70 backdrop-blur px-6 py-3">
                 <h1 className="text-xl font-bold text-gray-800">Inventory App</h1>
                 <div className="flex gap-3">
                     <button onClick={() => navigate('/recycle')} className="px-4 py-2 rounded-md bg-blue-500 hover:bg-blue-600 text-white">Recycle Bin</button>
@@ -90,10 +90,14 @@ export default function Items() {
             {/* Items Grid */}
             <div className="px-6 pb-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {filteredItems.map(item => (
-                    <div key={item.id} className="bg-white rounded-2xl shadow p-4 flex flex-col justify-between">
+                    <div key={item.id} className="bg-white/70 rounded-2xl shadow p-4 flex flex-col justify-between">
                         <Link to={`/moves/${item.id}`} className="flex-1">
                             <h3 className="font-semibold">{item.name}</h3>
                             <p className="text-sm text-gray-600">{item.quantity} - {item.type}<br />Added: {new Date(item.addedDate + 'Z').toLocaleString('tr-TR')}</p>
+                            {/*  LOW STOCK ALERT */}
+                            {item.quantity < item.reorderThreshold && (
+                                <p className="text-red-600 font-bold mt-1">LOW STOCK</p>
+                            )}
                         </Link>
                         <div className="mt-4 flex justify-end gap-2">
                             <button onClick={() => openEdit(item)} title="Edit" className="p-1 rounded hover:bg-gray-100"><Pencil size={16} /></button>
